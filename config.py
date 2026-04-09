@@ -23,10 +23,11 @@ load_dotenv()  # 允许本地使用 .env；在 GitHub Actions 中则来自 Secre
 
 @dataclass(frozen=True)
 class Secrets:
-    # Web of Science
-    wos_api_key: str
-    # 注意：WoS 不同产品线 base url 不一样。这里给一个常见示例，你可按机构开通情况修改。
-    wos_base_url: str = "https://api.clarivate.com/api/wos"
+    # 数据源（完全免费、无需 API Key）
+    # OpenAlex: https://docs.openalex.org/
+    openalex_base_url: str = "https://api.openalex.org"
+    # Crossref: https://api.crossref.org/
+    crossref_base_url: str = "https://api.crossref.org"
 
     # 163 SMTP
     email_user: str = ""
@@ -45,8 +46,8 @@ def load_secrets() -> Secrets:
     读取机密信息。如果缺失，会在 main.py 里统一报错提示。
     """
     return Secrets(
-        wos_api_key=os.getenv("WOS_API_KEY", "").strip(),
-        wos_base_url=os.getenv("WOS_BASE_URL", "https://api.clarivate.com/api/wos").strip(),
+        openalex_base_url=os.getenv("OPENALEX_BASE_URL", "https://api.openalex.org").strip(),
+        crossref_base_url=os.getenv("CROSSREF_BASE_URL", "https://api.crossref.org").strip(),
         email_user=os.getenv("EMAIL_163_USER", "").strip(),
         email_pass=os.getenv("EMAIL_163_PASS", "").strip(),
         smtp_host=os.getenv("SMTP_HOST", "smtp.163.com").strip(),
@@ -55,4 +56,3 @@ def load_secrets() -> Secrets:
         openai_base_url=os.getenv("OPENAI_BASE_URL", "").strip() or None,
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini").strip(),
     )
-
