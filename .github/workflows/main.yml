@@ -19,10 +19,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run literature agent
+      - name: Run agent
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          EMAIL_163_PASS: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_163_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_163_PASS: ${{ secrets.EMAIL_PASSWORD }}
           WEB_PASSWORD: ${{ secrets.WEB_PASSWORD }}
         run: python main.py
