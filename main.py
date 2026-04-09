@@ -13,21 +13,47 @@ EMAIL_USER = os.environ.get("EMAIL_163_USER", "")
 EMAIL_PASS = os.environ.get("EMAIL_163_PASS", "")
 RECEIVER = EMAIL_USER
 
-def get_test_literature():
-    # 真实、可运行的测试文献
-    data = {
-        "标题": [
-            "Sustainable Ecology Policy in Public Management",
-            "Economic Impact of Environmental Governance",
-            "Ecosystem Services and Public Policy Design",
-            "Climate Policy and Economic Development",
-            "Urban Ecology and Public Administration"
-        ],
-        "期刊": ["Q1 Top Journal", "Q1 Top Journal", "Q1 Top Journal", "Q1 Top Journal", "Q1 Top Journal"],
-        "发表日期": ["2025-04-10", "2025-04-09", "2025-04-08", "2025-04-07", "2025-04-06"],
-        "DOI": ["10.1000/test1", "10.1000/test2", "10.1000/test3", "10.1000/test4", "10.1000/test5"]
+# 研究方向：生态 + 公共管理 + 经济
+KEYWORD = "ecology public management environmental policy"
+
+def get_real_literature():
+    print("正在抓取真实最新文献...")
+    url = "https://api.openalex.org/works"
+    params = {
+        "filter": (
+            f"default.search:{KEYWORD},"
+            "publication_date:>2025-01-01,"
+            "is_oa:true,"
+            "type:article"
+        ),
+        "sort": "publication_date:desc",
+        "per-page": 8
     }
-    return pd.DataFrame(data)
+
+    r = requests.get(url, params=params, timeout=30)
+    data = r.json()
+
+    papers = []
+    for work in data.get("results", []):
+        title = work.get("title", "")
+        pub_date = work.get("publication_date", "")
+        journal = work.get("host_venue", {}).get("display_name", "Unknown Journal")
+        doi = work.get("doi", "")
+        abstract = work.get("abstract", "")[:300] + "..." if work.get("abstract") else ""
+
+        authors = []
+        for a in work.get("authorships", []):
+            author = a.get("author", {}).get("display_name", "")
+            if author:
+                authors.append(author)
+        authors_str = "; ".join(authors[:3])
+
+        papers.append([title, authors_str, journal, pub_date, doi, abstract])
+
+    df = pd.DataFrame(papers, columns=[
+        "标题", "作者", "期刊", "发表日期", "DOI", "摘要"
+    ])
+    return df
 
 def send_email(df):
     today = datetime.date.today().strftime("%Y%m%d")
@@ -39,7 +65,7 @@ def send_email(df):
     msg["To"] = RECEIVER
     msg["Subject"] = f"院士请看文献_{today}"
 
-    body = "最新 Q1 顶刊文献已推送，请查收附件。"
+    body = "最新真实文献已推送，包含标题、作者、期刊、日期、DOI、摘要。"
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
     with open(filename, "rb") as f:
@@ -49,15 +75,12 @@ def send_email(df):
     part.add_header("Content-Disposition", f"attachment; filename={filename}")
     msg.attach(part)
 
-    try:
-        server = smtplib.SMTP_SSL("smtp.163.com", 465)
-        server.login(EMAIL_USER, EMAIL_PASS)
-        server.sendmail(EMAIL_USER, RECEIVER, msg.as_string())
-        server.quit()
-        print("✅ 邮件发送成功")
-    except Exception as e:
-        print("❌ 发邮件失败:", e)
+    server = smtplib.SMTP_SSL("smtp.163.com", 465)
+    server.login(EMAIL_USER, EMAIL_PASS)
+    server.sendmail(EMAIL_USER, RECEIVER, msg.as_string())
+    server.quit()
 
 if __name__ == "__main__":
-    df = get_test_literature()
+    df = get_real_literature()
     send_email(df)
+    print("✅ 真实文献推送完成")
