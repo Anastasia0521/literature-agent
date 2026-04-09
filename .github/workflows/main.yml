@@ -1,0 +1,27 @@
+name: 文献自动推送
+
+on:
+  schedule:
+    - cron: '0 0 * * MON'  # 每周一 0点运行
+  workflow_dispatch:      # 允许你手动点一下就跑
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 运行文献Agent
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          WEB_PASSWORD: ${{ secrets.WEB_PASSWORD }}
+        run: python main.py
