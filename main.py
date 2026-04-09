@@ -14,8 +14,24 @@ EMAIL_USER = os.environ.get("EMAIL_163_USER", "")
 EMAIL_PASS = os.environ.get("EMAIL_163_PASS", "")
 RECEIVER = EMAIL_USER
 
-# 你的研究方向：公共管理 + 生态 + 环境经济
-KEYWORD = "public administration OR environmental policy OR ecological economics"
+# ===================== 你的精准 PRISMA 关键词 =====================
+topic_keywords = (
+    '"Payment for ecosystem services" OR "Payment for environmental services" OR PES '
+    'OR "Eco-compensation" OR "Ecological compensation"'
+)
+
+attribute_keywords = (
+    'Dynamic OR Non-equilibrium OR Spatiotemporal OR "Spatio-temporal" OR Time-varying '
+    'OR Threshold OR Non-linear OR Fluctuation OR Uncertainty OR "Adaptive management" '
+    'OR Trans-boundary OR Transboundary OR Horizontal OR "Inter-jurisdictional" OR Inter-regional '
+    'OR "Upstream-downstream" OR "Upstream-downstream cooperation" OR Cross-border '
+    'OR "User-financed" OR "Market-based" OR Coasean OR "Private-to-private" OR Cost-sharing '
+    'OR "Tradable permit" OR "Trading scheme"'
+)
+
+# 组合成精准检索式
+KEYWORD = f"({topic_keywords}) AND ({attribute_keywords})"
+# =================================================================
 
 def get_real_literature():
     one_year_ago = (date.today() - timedelta(days=365)).isoformat()
@@ -23,7 +39,7 @@ def get_real_literature():
     params = {
         "query": KEYWORD,
         "filter": f"from-pub-date:{one_year_ago},type:journal-article",
-        "rows": 8,
+        "rows": 10,
         "sort": "published"
     }
 
@@ -45,14 +61,13 @@ def get_real_literature():
         author_str = "; ".join(authors[:3])
 
         journal = item.get("container-title", [None])[0]
-        pub_date = item.get("published", {}).get("date-parts", [[None]])[0][0]
+        year = item.get("published", {}).get("date-parts", [[None]])[0][0]
         doi = item.get("DOI", None)
         abstract = item.get("abstract", "")
-
         if abstract:
             abstract = abstract[:300] + "..."
 
-        papers.append([title, author_str, journal, pub_date, doi, abstract])
+        papers.append([title, author_str, journal, year, doi, abstract])
 
     df = pd.DataFrame(papers, columns=["标题", "作者", "期刊", "年份", "DOI", "摘要"])
     return df
@@ -67,7 +82,10 @@ def send_email(df):
     msg["To"] = RECEIVER
     msg["Subject"] = f"院士请看文献_{today_str}"
 
-    body = "本周最新顶刊文献（公共管理/生态/环境经济）\n包含标题、作者、期刊、DOI、摘要。"
+    body = (
+        "✅ 本周精准文献推送（生态补偿 / PES / 动态时空 / 跨区域）\n"
+        "完全基于你的 PRISMA 检索策略，高度相关。"
+    )
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
     with open(filename, "rb") as f:
@@ -85,4 +103,4 @@ def send_email(df):
 if __name__ == "__main__":
     df = get_real_literature()
     send_email(df)
-    print("✅ 真实完整文献推送成功")
+    print("✅ 精准文献推送完成")
