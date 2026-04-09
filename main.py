@@ -7,65 +7,67 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 import datetime
+from datetime import date, timedelta
 
 # 邮箱配置
 EMAIL_USER = os.environ.get("EMAIL_163_USER", "")
 EMAIL_PASS = os.environ.get("EMAIL_163_PASS", "")
 RECEIVER = EMAIL_USER
 
-# 研究方向：生态 + 公共管理 + 经济
-KEYWORD = "ecology public management environmental policy"
+# 你的研究方向：公共管理 + 生态 + 环境经济
+KEYWORD = "public administration OR environmental policy OR ecological economics"
 
 def get_real_literature():
-    print("正在抓取真实最新文献...")
-    url = "https://api.openalex.org/works"
+    one_year_ago = (date.today() - timedelta(days=365)).isoformat()
+
     params = {
-        "filter": (
-            f"default.search:{KEYWORD},"
-            "publication_date:>2025-01-01,"
-            "is_oa:true,"
-            "type:article"
-        ),
-        "sort": "publication_date:desc",
-        "per-page": 8
+        "query": KEYWORD,
+        "filter": f"from-pub-date:{one_year_ago},type:journal-article",
+        "rows": 8,
+        "sort": "published"
     }
 
-    r = requests.get(url, params=params, timeout=30)
+    r = requests.get("https://api.crossref.org/works", params=params, timeout=30)
     data = r.json()
 
     papers = []
-    for work in data.get("results", []):
-        title = work.get("title", "")
-        pub_date = work.get("publication_date", "")
-        journal = work.get("host_venue", {}).get("display_name", "Unknown Journal")
-        doi = work.get("doi", "")
-        abstract = work.get("abstract", "")[:300] + "..." if work.get("abstract") else ""
+    for item in data.get("message", {}).get("items", []):
+        title = item.get("title", [None])[0]
+        if not title:
+            continue
 
         authors = []
-        for a in work.get("authorships", []):
-            author = a.get("author", {}).get("display_name", "")
-            if author:
-                authors.append(author)
-        authors_str = "; ".join(authors[:3])
+        for a in item.get("author", []):
+            given = a.get("given", "")
+            family = a.get("family", "")
+            if given and family:
+                authors.append(f"{given} {family}")
+        author_str = "; ".join(authors[:3])
 
-        papers.append([title, authors_str, journal, pub_date, doi, abstract])
+        journal = item.get("container-title", [None])[0]
+        pub_date = item.get("published", {}).get("date-parts", [[None]])[0][0]
+        doi = item.get("DOI", None)
+        abstract = item.get("abstract", "")
 
-    df = pd.DataFrame(papers, columns=[
-        "标题", "作者", "期刊", "发表日期", "DOI", "摘要"
-    ])
+        if abstract:
+            abstract = abstract[:300] + "..."
+
+        papers.append([title, author_str, journal, pub_date, doi, abstract])
+
+    df = pd.DataFrame(papers, columns=["标题", "作者", "期刊", "年份", "DOI", "摘要"])
     return df
 
 def send_email(df):
-    today = datetime.date.today().strftime("%Y%m%d")
-    filename = f"literature_{today}.xlsx"
+    today_str = datetime.date.today().strftime("%Y%m%d")
+    filename = f"literature_{today_str}.xlsx"
     df.to_excel(filename, index=False)
 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_USER
     msg["To"] = RECEIVER
-    msg["Subject"] = f"院士请看文献_{today}"
+    msg["Subject"] = f"院士请看文献_{today_str}"
 
-    body = "最新真实文献已推送，包含标题、作者、期刊、日期、DOI、摘要。"
+    body = "本周最新顶刊文献（公共管理/生态/环境经济）\n包含标题、作者、期刊、DOI、摘要。"
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
     with open(filename, "rb") as f:
@@ -83,4 +85,4 @@ def send_email(df):
 if __name__ == "__main__":
     df = get_real_literature()
     send_email(df)
-    print("✅ 真实文献推送完成")
+    print("✅ 真实完整文献推送成功")
