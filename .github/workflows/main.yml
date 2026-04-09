@@ -10,19 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Run agent
+      - name: Run
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           EMAIL_163_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_163_PASS: ${{ secrets.EMAIL_PASSWORD }}
-          WEB_PASSWORD: ${{ secrets.WEB_PASSWORD }}
         run: python main.py
