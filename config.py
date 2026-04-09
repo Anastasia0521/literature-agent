@@ -30,7 +30,7 @@ class Secrets:
     crossref_base_url: str = "https://api.crossref.org"
 
     # 163 SMTP
-    email_user: str = ""
+    email_user: str = "anastasiachan@163.com"
     email_pass: str = ""  # SMTP 授权码（不是登录密码）
     smtp_host: str = "smtp.163.com"
     smtp_port_ssl: int = 465
