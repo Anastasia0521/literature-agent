@@ -1,0 +1,12 @@
+requests>=2.32.3
+pandas>=2.2.3
+openpyxl>=3.1.5
+python-dotenv>=1.0.1
+pydantic>=2.10.6
+
+# GPT (OpenAI-compatible)
+openai>=1.66.3
+
+# Optional: simple admin web app (future requirement)
+fastapi>=0.115.8
+uvicorn>=0.34.0
